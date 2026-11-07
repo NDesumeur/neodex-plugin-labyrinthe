@@ -1,0 +1,22 @@
+{
+  "id": "neodex.labyrinthe",
+  "name": "Labyrinthe",
+  "version": "1.0.0",
+  "author": "NDesumeur",
+  "description": "À la lueur d'une lanterne, trouve la clé puis la porte de sortie. Le plan se dessine à mesure que tu avances.",
+  "icon": "icon.png",
+  "entry": "index.js",
+  "view": "labyrinthe",
+  "neobase": ">=4.0.0",
+  "type": "app",
+  "category": "Jeux",
+  "syncMode": "progression",
+  "syncInfo": "Niveau atteint, records de temps.",
+  "mobile": false,
+  "system": false,
+  "dependencies": {},
+  "sdk": "2.1.0",
+  "permissions": [
+    "storage"
+  ]
+}
