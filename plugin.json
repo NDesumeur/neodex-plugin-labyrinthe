@@ -3,7 +3,7 @@
   "name": "Labyrinthe",
   "version": "1.0.0",
   "author": "NDesumeur",
-  "description": "À la lueur d'une lanterne, trouve la clé puis la porte de sortie. Le plan se dessine à mesure que tu avances.",
+  "description": "Explore un labyrinthe dans le noir à la lueur d'une lanterne : trouve la clé, cachée au plus loin du départ, puis la porte, au plus loin de la clé. Ce que la lanterne a éclairé reste sur le plan. Labyrinthes générés et toujours faisables, plus grands à chaque niveau, plan fixe par niveau ou au hasard, et record de temps par niveau.",
   "icon": "icon.png",
   "entry": "index.js",
   "view": "labyrinthe",
