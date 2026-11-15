@@ -2,12 +2,12 @@
 // Jeu NeoDex en pixel art dessiné à la main (police bitmap, cadres et boutons en pixels). Il tourne dans le bac à sable de NeoDex.
 const HTML = `<div class="appWrap wide">
   <div class="agHead"><span class="label">Labyrinthe</span><span class="hint">Flèches ou ZQSD (maintenir pour avancer) · souris : maintenir vers une direction</span></div>
-  <div class="gMain"><div class="gameBox"><canvas id="gc" width="232" height="192"></canvas></div>
+  <div class="gMain"><div class="gameBox"><canvas id="gc" width="232" height="192" role="img" aria-label="Labyrinthe"></canvas></div>
     <div class="gSide">
       <div class="sysCard"><b>RECORDS</b><div class="gStats" id="gStats"></div></div>
-      <div class="row"><button class="btn main" id="gNew">NOUVELLE PARTIE</button><button class="btn" id="lbPrev">◀</button><button class="btn" id="lbNext">▶</button></div>
+      <div class="row"><button class="btn main" id="gNew">NOUVELLE PARTIE</button><button class="btn" id="lbPrev">◀</button><button class="btn" id="lbNext">▶</button><button class="btn" id="gFs">PLEIN ÉCRAN</button></div>
       <label class="row"><input type="checkbox" id="lbRnd"> Labyrinthes au hasard (nouveau à chaque partie)</label>
-      <div class="hint">Ce que la lanterne a éclairé reste sur le plan, en sombre.</div><div class="hint">Chaque niveau est plus grand. Le chrono garde ton record par niveau.</div>
+      <div class="hint">Ce que la lanterne a éclairé reste sur le plan, en sombre.</div><div class="hint">Chaque niveau est plus grand. Le chrono garde ton record par niveau.</div><div class="hint">Dès le niveau 2, des trappes s'ouvrent un moment (elles tremblent avant) : tomber renvoie au départ. Dès le niveau 3, des grilles se ferment puis se rouvrent.</div>
     </div></div>
 </div>`;
 const CSS = `.gMain{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
@@ -17,7 +17,9 @@ const CSS = `.gMain{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
 .gSide .sysCard{display:flex;flex-direction:column}
 .gStats{display:grid;grid-template-columns:1fr auto;gap:4px 14px}
 .gStats b{text-align:right}
-.gameBox canvas{max-width:560px;aspect-ratio:232/192}`;
+.gameBox canvas{width:min(100%,max(300px,calc((100vh - 190px) * 232 / 192)));height:auto;aspect-ratio:232/192}
+.gameBox:fullscreen{padding:0}
+.gameBox:fullscreen canvas{width:min(100vw,calc(100vh * 232 / 192))}`;
 /* ---------- l'habillage pixel art, dessiné à la main : police bitmap (accents compris), cadres, boutons, icônes ----------
    Tout est en pixels pleins, agrandis par 2 sans lissage : aucun dégradé, aucune ombre floue. */
 const PXK = (() => {
@@ -347,17 +349,25 @@ function lbGen(level, seed = level * 9973 + 17) {  // labyrinthe parfait creusé
   }
   for (let i = 0; i < level * 2; i++) { const x = 1 + Math.floor(r() * (tw - 2)), y = 1 + Math.floor(r() * (th - 2)); if ((x + y) % 2 && m[y][x]) m[y][x] = 0; }  // quelques raccourcis
   const far = (sx, sy) => { const d = m.map(row => row.map(() => -1)), q = [[sx, sy]]; d[sy][sx] = 0; let last = [sx, sy]; while (q.length) { const [x, y] = q.shift(); last = [x, y]; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!m[y + dy][x + dx] && d[y + dy][x + dx] < 0) { d[y + dy][x + dx] = d[y][x] + 1; q.push([x + dx, y + dy]); } } return {last, d}; };
-  const key = far(1, 1).last, door = far(...key).last, {d} = far(1, 1);
-  return {m, tw, th, key, door, path: d[key[1]][key[0]] + far(...key).d[door[1]][door[0]]};
+  const key = far(1, 1).last, door = far(...key).last, {d} = far(1, 1), cand = [];
+  for (let y = 1; y < th - 1; y++) for (let x = 1; x < tw - 1; x++) if (!m[y][x] && x + y > 5 && !(x === key[0] && y === key[1]) && !(x === door[0] && y === door[1]) && ((!m[y][x - 1] && !m[y][x + 1] && m[y - 1][x] && m[y + 1][x]) || (!m[y - 1][x] && !m[y + 1][x] && m[y][x - 1] && m[y][x + 1]))) cand.push([x, y]);
+  const pick = n => { const out = []; while (out.length < n && cand.length) { const [c] = cand.splice(Math.floor(r() * cand.length), 1); if (out.every(o => Math.abs(o[0] - c[0]) + Math.abs(o[1] - c[1]) > 3)) out.push(c); } return out; };
+  const traps = level >= 2 ? pick(Math.min(8, level >> 1)).map(([x, y]) => ({x, y, off: Math.floor(r() * 240)})) : [];
+  const gates = level >= 3 ? pick(Math.min(6, Math.floor((level - 1) / 3))).map(([x, y]) => ({x, y, off: Math.floor(r() * 300)})) : [];
+  return {m, tw, th, key, door, traps, gates, path: d[key[1]][key[0]] + far(...key).d[door[1]][door[0]]};
 }
 function lbNew(level = lbs.level) {
   lbs.level = level; saveGames(); const L = lbGen(level, lbs.rnd ? Math.floor(Math.random() * 1e9) : undefined);
-  lb = Object.assign(lb || {tick: 0, raf: 0}, {mode: 'ready', ...L, ox: Math.floor((W - L.tw * LB.T) / 2), oy: LB.TOP + Math.floor((H - LB.TOP - L.th * LB.T) / 2), x: 1, y: 1, fx: 1, fy: 1, has: false, dir: null, moveAt: 0, t: 0, steps: 0, wonAt: 0, seen: L.m.map(r => r.map(() => 0)), stone: null});
+  lb = Object.assign(lb || {tick: 0, raf: 0}, {mode: 'ready', ...L, ox: Math.floor((W - L.tw * LB.T) / 2), oy: LB.TOP + Math.floor((H - LB.TOP - L.th * LB.T) / 2), x: 1, y: 1, fx: 1, fy: 1, has: false, dir: null, moveAt: 0, t: 0, steps: 0, wonAt: 0, seen: L.m.map(r => r.map(() => 0)), stone: null, fall: 0, falls: 0, bump: 0, tmap: new Map(L.traps.map(t => [t.x + ',' + t.y, t])), gmap: new Map(L.gates.map(t => [t.x + ',' + t.y, t]))});
   lbLook(); lbInfo();
 }
 function lbLook() { for (let y = 0; y < lb.th; y++) for (let x = 0; x < lb.tw; x++) if (Math.hypot(x - lb.x, y - lb.y) <= LB.LIGHT + .5) lb.seen[y][x] = 1; }
+// une trappe est ouverte 1 s sur 4 (elle tremble une demi-seconde avant) ; une grille est fermée 1,7 s sur 5, sauf si tu es dessous
+const lbTrap = tp => { const c = (lb.t + tp.off) % 240; return c >= 180 ? 'open' : c >= 150 ? 'warn' : ''; };
+const lbGate = gt => { const c = (lb.t + gt.off) % 300; return lb.x === gt.x && lb.y === gt.y ? (c >= 200 ? 'held' : '') : c >= 200 ? 'shut' : c >= 170 ? 'warn' : ''; };
 function lbStep(dx, dy) {
-  if (lb.mode !== 'play' || lb.m[lb.y + dy][lb.x + dx]) return false;
+  if (lb.mode !== 'play' || lb.fall || lb.m[lb.y + dy][lb.x + dx]) return false;
+  const gt = lb.gmap.get((lb.x + dx) + ',' + (lb.y + dy)); if (gt && lbGate(gt) === 'shut') { if (lb.tick - lb.bump > 20) { lb.bump = lb.tick; beep(90, .12, 'square', 60, .06); } return false; }
   lb.x += dx; lb.y += dy; lb.steps++; lbLook(); beep(140 + (lb.steps % 2) * 30, .02, 'triangle', 0, .03);
   if (!lb.has && lb.x === lb.key[0] && lb.y === lb.key[1]) { lb.has = true; [880, 1320].forEach((f, i) => setTimeout(() => beep(f, .1, 'triangle'), i * 80)); }
   if (lb.has && lb.x === lb.door[0] && lb.y === lb.door[1]) {
@@ -369,6 +379,8 @@ function lbStep(dx, dy) {
 }
 function lbUpdate() {
   lb.t++;
+  if (lb.fall) { if (--lb.fall === 0) { lb.x = lb.fx = 1; lb.y = lb.fy = 1; lbLook(); beep(220, .1, 'triangle', 330, .05); } return; }
+  const tp = lb.tmap.get(lb.x + ',' + lb.y); if (tp && lbTrap(tp) === 'open') { lb.fall = 40; lb.falls++; lb.dir = null; beep(500, .6, 'sawtooth', 60, .07); return; }  // la trappe s'ouvre sous tes pieds : retour au départ
   if (lb.dir && lb.tick - lb.moveAt >= LB.STEP) { if (lbStep(...lb.dir)) lb.moveAt = lb.tick; }
 }
 function lbDraw() {
@@ -386,6 +398,12 @@ function lbDraw() {
   for (let y = 0; y < lb.th; y++) for (let x = 0; x < lb.tw; x++) {
     if (!lb.seen[y][x]) continue; const d = Math.hypot(x - lb.fx, y - lb.fy);
     g.drawImage(lb.stone, x * LB.T, y * LB.T, LB.T, LB.T, lb.ox + x * LB.T, lb.oy + y * LB.T, LB.T, LB.T);
+    const tp = lb.tmap.get(x + ',' + y), gt = lb.gmap.get(x + ',' + y), X = lb.ox + x * LB.T, Y = lb.oy + y * LB.T;
+    if (tp) { const s = lbTrap(tp); px(g, '#4a2e16', X, Y, 8, 8);
+      if (s === 'open') { px(g, '#05010b', X + 1, Y + 1, 6, 6); px(g, '#8a6a3a', X + 1, Y + 1, 6, 1); }  // le trou, la planche rabattue en haut
+      else { const j = s === 'warn' ? (lb.tick >> 1) % 2 : 0; px(g, '#8a6a3a', X + 1 + j, Y + 1, 6 - j, 6); px(g, '#5a3a1a', X + 1, Y + 3, 6, 1); px(g, '#5a3a1a', X + 1, Y + 5, 6, 1); px(g, '#c8c0b0', X + 1, Y + 1, 1, 1); px(g, '#c8c0b0', X + 6, Y + 6, 1, 1); if (j || s === 'warn') px(g, '#05010b', X + 3, Y + 2, 1, 4); } }
+    if (gt) { const s = lbGate(gt), c = (lb.t + gt.off) % 300, h = s === 'shut' ? 8 : s === 'warn' ? Math.round((c - 170) / 30 * 7) + 1 : 1;  // la grille descend
+      px(g, '#3a3448', X, Y, 1, 8); px(g, '#3a3448', X + 7, Y, 1, 8); px(g, '#6a6880', X, Y, 8, 1); for (let i = 0; i < 3; i++) px(g, '#b8b8c8', X + 2 + i * 2, Y, 1, h); if (h > 3) px(g, '#8a8898', X + 1, Y + h - 2, 6, 1); }
     const dark = d < LB.LIGHT - 1 + fl ? 0 : d < LB.LIGHT + fl ? .35 : d < LB.LIGHT + 1 + fl ? .6 : .78;
     if (dark) { g.globalAlpha = dark; px(g, '#05010b', lb.ox + x * LB.T, lb.oy + y * LB.T, LB.T, LB.T); g.globalAlpha = 1; }
     if (d >= LB.LIGHT - 1 && d < LB.LIGHT + 1 && (x + y + Math.floor(lb.tick / 8)) % 2 === 0) { g.globalAlpha = .25; px(g, '#05010b', lb.ox + x * LB.T, lb.oy + y * LB.T, LB.T, LB.T); g.globalAlpha = 1; }
@@ -394,14 +412,15 @@ function lbDraw() {
   if (!lb.has && vis(...lb.key)) g.drawImage(LB_KEY, lb.ox + lb.key[0] * LB.T, lb.oy + lb.key[1] * LB.T - (Math.floor(lb.tick / 15) % 2));
   if (vis(...lb.door)) g.drawImage(LB_DOOR[lb.has ? 1 : 0], lb.ox + lb.door[0] * LB.T, lb.oy + lb.door[1] * LB.T);
   const moving = Math.abs(lb.x - lb.fx) + Math.abs(lb.y - lb.fy) > .1;
-  g.drawImage(LB_HERO[moving ? Math.floor(lb.tick / 5) % 2 : 0], Math.round(lb.ox + lb.fx * LB.T), Math.round(lb.oy + lb.fy * LB.T));
-  px(g, '#ffd84a', Math.round(lb.ox + lb.fx * LB.T) + 7, Math.round(lb.oy + lb.fy * LB.T) + 3, 1, 2);  // la lanterne
+  if (lb.fall) { const k = lb.fall / 40, s = Math.max(1, Math.round(8 * k)), X = Math.round(lb.ox + lb.fx * LB.T + 4 - s / 2), Y = Math.round(lb.oy + lb.fy * LB.T + 4 - s / 2); g.drawImage(LB_HERO[0], X, Y, s, s); }  // il tombe dans la trappe
+  else { g.drawImage(LB_HERO[moving ? Math.floor(lb.tick / 5) % 2 : 0], Math.round(lb.ox + lb.fx * LB.T), Math.round(lb.oy + lb.fy * LB.T));
+    px(g, '#ffd84a', Math.round(lb.ox + lb.fx * LB.T) + 7, Math.round(lb.oy + lb.fy * LB.T) + 3, 1, 2); }  // la lanterne
   // en-tête
   px(g, '#140c20', 0, 0, W, LB.TOP - 2); px(g, '#2a1e3a', 0, LB.TOP - 2, W, 1);
-  pxFont(g, 'NIVEAU ' + lbs.level, 6, 11, '#c8b8e0', 6); pxFont(g, (lb.t / 60).toFixed(1) + ' s', W / 2, 11, '#ffffff', 6, 'center');
+  pxFont(g, 'NIVEAU ' + lbs.level, 6, 11, '#c8b8e0', 6); pxFont(g, lb.fall ? 'tu tombes !' : (lb.t / 60).toFixed(1) + ' s', W / 2, 11, lb.fall ? '#ff5a6a' : '#ffffff', 6, 'center');
   g.drawImage(LB_KEY, W - 20, 4); if (!lb.has) { g.globalAlpha = .7; px(g, '#140c20', W - 20, 4, 8, 8); g.globalAlpha = 1; } pxFont(g, lb.has ? 'clé' : '?', W - 24, 11, lb.has ? '#ffd84a' : '#6a5a7a', 6, 'right');
-  if (lb.mode === 'ready') gameText(g, W, [['LABYRINTHE', '#ffd84a', 12], ['Trouve la clé, puis la porte', '#ffffff'], ['Flèches pour partir', '#ffd84a']], 80);
-  if (lb.mode === 'won' && lb.tick - lb.wonAt > 20) gameText(g, W, [['SORTI !', '#5fdf6a', 12], [(Math.round(lb.t / 6) / 10) + ' s' + (lb.record ? '  record !' : ''), '#ffffff'], ['Clic : niveau suivant', '#ffd84a']], 80);
+  if (lb.mode === 'ready') gameText(g, W, [['LABYRINTHE', '#ffd84a', 12], ['Trouve la clé, puis la porte', '#ffffff'], ...(lb.traps.length ? [[lb.gates.length ? 'Gare aux trappes et aux grilles' : 'Gare aux trappes qui tremblent', '#ff9a8a']] : []), ['Flèches pour partir', '#ffd84a']], 80);
+  if (lb.mode === 'won' && lb.tick - lb.wonAt > 20) gameText(g, W, [['SORTI !', '#5fdf6a', 12], [(Math.round(lb.t / 6) / 10) + ' s' + (lb.record ? '  record !' : '') + (lb.falls ? '  · ' + lb.falls + ' chute' + (lb.falls > 1 ? 's' : '') : ''), '#ffffff'], ['Clic : niveau suivant', '#ffd84a']], 80);
 }
 const LB_DIRS = {ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0], z: [0, -1], s: [0, 1], q: [-1, 0], d: [1, 0], w: [0, -1], a: [-1, 0]};
 document.addEventListener('keydown', e => {
@@ -421,10 +440,20 @@ $('lbRnd').checked = !!lbs.rnd; $('lbRnd').onchange = () => { lbs.rnd = $('lbRnd
 
 const lbSel = $('lbPrev'), lbNext = $('lbNext');
 lbSel.onclick = () => { if (lbs.level > 1) lbNew(lbs.level - 1); lbSel.blur(); }; lbNext.onclick = () => { if (lbs.level < lbs.top) lbNew(lbs.level + 1); lbNext.blur(); };
-{  // vérification : clé et porte toujours atteignables, sur des cases libres, et pas au départ
-  let ok = true; for (let lv = 1; lv < 20; lv++) { const L = lbGen(lv); ok &&= L.path > 4 && !L.m[L.key[1]][L.key[0]] && !L.m[L.door[1]][L.door[0]] && L.tw * LB.T <= W && LB.TOP + L.th * LB.T <= H; }
-  console.assert(ok, 'labyrinthe');
+$('gFs').onclick = () => { const box = cv.parentElement; document.fullscreenElement ? document.exitFullscreen() : box.requestFullscreen?.().catch(() => {}); $('gFs').blur(); };
+function lbCheck() {  // vérification : clé et porte atteignables, pièges sur des cases de couloir libres, une trappe ouverte fait retomber au départ, une grille fermée bloque
+  const bad = [];
+  for (let lv = 1; lv < 20; lv++) { const L = lbGen(lv); if (!(L.path > 4 && !L.m[L.key[1]][L.key[0]] && !L.m[L.door[1]][L.door[0]] && L.tw * LB.T <= W && LB.TOP + L.th * LB.T <= H)) bad.push('plan ' + lv);
+    for (const t of [...L.traps, ...L.gates]) if (L.m[t.y][t.x] || t.x + t.y <= 5 || (t.x === L.key[0] && t.y === L.key[1]) || (t.x === L.door[0] && t.y === L.door[1])) bad.push('piège ' + lv);
+    if (lv === 1 && L.traps.length + L.gates.length || lv >= 4 && !L.traps.length) bad.push('pièges ' + lv); }
+  if (lbGen(1).m.join() !== lbGen(1).m.join()) bad.push('plan fixe');
+  const keep = lb, ks = {...lbs}; lb = null; lbNew(6); lb.mode = 'play';
+  const tp = lb.traps[0]; lb.x = tp.x; lb.y = tp.y; lb.t = (180 - tp.off + 240 * 4) % 240 - 1; lbUpdate(); for (let i = 0; i < 40; i++) lbUpdate(); if (lb.x !== 1 || lb.y !== 1 || lb.falls !== 1) bad.push('trappe');
+  const gt = lb.gates[0]; if (gt) { const [dx, dy] = [[1, 0], [-1, 0], [0, 1], [0, -1]].find(([a, c]) => !lb.m[gt.y + c][gt.x + a]); lb.x = gt.x + dx; lb.y = gt.y + dy; lb.t = (200 - gt.off + 3000) % 300; if (lbStep(-dx, -dy)) bad.push('grille'); lb.t = (gt.off * -1 + 3000) % 300; if (!lbStep(-dx, -dy)) bad.push('grille ouverte'); } else bad.push('grille 6');
+  lb = keep; Object.assign(lbs, ks);
+  return bad.join(' | ') || 'ok';
 }
+{ const c = lbCheck(); console.assert(c === 'ok', 'labyrinthe', c); cv.__lb = {check: lbCheck, st: () => lb, again: lv => lbNew(lv), lbs}; }
 ctx.onOpen(() => { if (!lb) lbNew(); gameLoop(lb, 'labyrinthe', lbUpdate, lbDraw); lbInfo(); });
 
 }

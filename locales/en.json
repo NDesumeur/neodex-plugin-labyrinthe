@@ -1,4 +1,5 @@
 {
+ " chute": " fall",
  "Aa": "Aa",
  "Ac": "Ac",
  "Ad": "Ad",
@@ -8,15 +9,18 @@
  "Chaque niveau est plus grand. Le chrono garde ton record par niveau.": "Each level is bigger. The timer keeps your record per level.",
  "Clic : niveau suivant": "Click: next level",
  "Cz": "Cz",
+ "Dès le niveau 2, des trappes s'ouvrent un moment (elles tremblent avant) : tomber renvoie au départ. Dès le niveau 3, des grilles se ferment puis se rouvrent.": "From level 2, trapdoors open for a moment (they shake first): falling sends you back to the start. From level 3, gates close then open again.",
  "Ea": "Ea",
  "Ec": "Ec",
  "Ed": "Ed",
  "Eg": "Eg",
  "Enter": "Enter",
  "Escape": "Escape",
- "Explore un labyrinthe dans le noir à la lueur d'une lanterne : trouve la clé, cachée au plus loin du départ, puis la porte, au plus loin de la clé. Ce que la lanterne a éclairé reste sur le plan. Labyrinthes générés et toujours faisables, plus grands à chaque niveau, plan fixe par niveau ou au hasard, et record de temps par niveau.": "Explore a maze in the dark by the light of a lantern: find the key, hidden furthest from the start, then the door, furthest from the key. What the lantern has lit stays on the map. Generated mazes that are always solvable, bigger at each level, a fixed or random layout per level, and a time record per level.",
+ "Explore un labyrinthe dans le noir à la lueur d'une lanterne : trouve la clé, cachée au plus loin du départ, puis la porte, au plus loin de la clé. Ce que la lanterne a éclairé reste sur le plan. Labyrinthes générés et toujours faisables, plus grands à chaque niveau, plan fixe par niveau ou au hasard, et record de temps par niveau. Pièges dès le niveau 2 : des trappes qui s'ouvrent (tomber renvoie au départ) et des grilles qui se ferment un moment. Jeu à la taille de l'écran et plein écran.": "Explore a maze in the dark by the light of a lantern: find the key, hidden furthest from the start, then the door, furthest from the key. What the lantern has lit stays on the map. Generated mazes that are always solvable, bigger at each level, a fixed or random layout per level, and a time record per level. Traps from level 2: trapdoors that open (falling sends you back to the start) and gates that close for a while. The game fits the screen and goes full screen.",
  "Flèches ou ZQSD (maintenir pour avancer) · souris : maintenir vers une direction": "Arrows or ZQSD (hold to move forward) · mouse: hold towards a direction",
  "Flèches pour partir": "Arrows to leave",
+ "Gare aux trappes et aux grilles": "Watch out for trapdoors and gates",
+ "Gare aux trappes qui tremblent": "Watch out for shaking trapdoors",
  "Ia": "Ia",
  "Ic": "Ic",
  "Id": "ID",
@@ -55,6 +59,7 @@
  "Oa": "Oh",
  "Oc": "Oc",
  "Od": "Od",
+ "PLEIN ÉCRAN": "FULL SCREEN",
  "RECORDS": "RECORDS",
  "Record de ce niveau": "Record at this level",
  "SORTI !": "OUT!",
@@ -63,5 +68,6 @@
  "Uc": "Uc",
  "Ud": "Ud",
  "Ug": "Ug",
- "clé": "key"
+ "clé": "key",
+ "tu tombes !": "you fall!"
 }
