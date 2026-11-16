@@ -1,7 +1,7 @@
 {
   "id": "neodex.labyrinthe",
   "name": "Labyrinthe",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": "NDesumeur",
   "description": "Explore un labyrinthe dans le noir à la lueur d'une lanterne : trouve la clé, cachée au plus loin du départ, puis la porte, au plus loin de la clé. Ce que la lanterne a éclairé reste sur le plan. Labyrinthes générés et toujours faisables, plus grands à chaque niveau, plan fixe par niveau ou au hasard, et record de temps par niveau. Pièges dès le niveau 2 : des trappes qui s'ouvrent (tomber renvoie au départ) et des grilles qui se ferment un moment. Jeu à la taille de l'écran et plein écran.",
   "icon": "icon.png",
