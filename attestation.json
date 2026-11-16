@@ -1,9 +1,9 @@
 {
   "pluginId": "neodex.labyrinthe",
   "repo": "NDesumeur/neodex-plugin-labyrinthe",
-  "version": "1.1.0",
-  "sha256": "a63941c8d7d9ee7f067c03b1fa87e62b45bc64c5c463514e38bc1ce89a9882c5",
-  "approvedAt": "2026-11-16T04:14:36.743Z",
+  "version": "1.1.1",
+  "sha256": "00c1e5101b2a555e6ba098384b018fe17508140e74c0ba9d63d1f47dc1b312a4",
+  "approvedAt": "2026-11-16T16:38:49.231Z",
   "neobase": ">=4.0.0",
-  "signature": "ckVIvktYSXPU2dcAEFHCCV83dr98BCtJ6eSbP1edW+hYQA/a7a5WXdY9H7rlI5zRERTj0xywkCJ+bNaV+9/kBg=="
+  "signature": "sZugg2r4Hzn0mz9UgDOLRW9ZscUnDJTHlEz9unpl6KITkzuO3x2ea92iFsZJUrb76IY9uBBDS8wHf+jC4buKBA=="
 }
