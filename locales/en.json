@@ -53,7 +53,6 @@
  "Labyrinthes finis": "Finished mazes",
  "NIVEAU": "LEVEL",
  "NOUVELLE PARTIE": "NEW GAME",
- "Niveau atteint, records de temps.": "Level reached, time records.",
  "Niveau le plus loin": "Farthest level",
  "Nt": "Nt",
  "Oa": "Oa",
@@ -71,5 +70,6 @@
  "clé": "key",
  "tu tombes !": "you fall!",
  "piège": "trap",
- "pièges": "traps"
+ "pièges": "traps",
+ "Rien n'est synchronisé : tes records restent sur cet appareil.": "Nothing is synced: your records stay on this device."
 }
