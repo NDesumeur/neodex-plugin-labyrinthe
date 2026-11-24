@@ -11,6 +11,12 @@ module.exports = async ({ pj, sleep }) => {
   const dir = await C(`return [['ArrowRight', 1, 0], ['ArrowDown', 0, 1]].find(([, dx, dy]) => !lb.m[1 + dy][1 + dx])[0];`);
   await key(dir); await sleep(400); await key(dir, 'keyup'); const s1 = await C('return {x: lb.x, y: lb.y, steps: lb.steps, mode: lb.mode};');
   if (s1.mode !== 'play' || !s1.steps) throw new Error('les flèches devaient faire avancer : ' + JSON.stringify(s1));
+  // la craie : C pose une flèche dans le sens de la marche, X une croix, la même touche au même endroit efface ; le bouton fait pareil
+  await key('c'); const m1 = await C('return String(lb.chalk.get(lb.x + "," + lb.y)) + "|" + String(lb.last);'); const [a1, b1] = m1.split('|'); if (a1 !== b1) throw new Error('craie : ' + m1);
+  await key('x'); if (await C('return lb.chalk.get(lb.x + "," + lb.y);') !== 'x') throw new Error('craie : croix');
+  await key('x'); if (await C('return lb.chalk.size;') !== 0) throw new Error('craie : effacer');
+  await pj(`document.getElementById('lbChalk').click(), 0`); await C('lb.chalk.set("1,1", "x"); lb.chalk.set("1,3", [0, 1]); lb.chalk.set("3,1", [-1, 0]); return 0;'); await sleep(150); await shot('craie');
+  if (await C('return lb.chalk.size;') < 3) throw new Error('craie : bouton');
   // tout le plan éclairé pour l'image, puis le héros posé sur une trappe juste avant qu'elle s'ouvre
   await C(`lb.seen = lb.m.map(r => r.map(() => 1)); const g = lb.gates[0]; if (g) lb.t = (190 - g.off + 3000) % 300; return 0;`); await sleep(150); await shot('1-pieges');
   await C(`const tp = lb.traps[0]; lb.x = lb.fx = tp.x; lb.y = lb.fy = tp.y; lb.t = (160 - tp.off + 2400) % 240; return 0;`); await sleep(300); await shot('2-trappe-tremble'); await sleep(450); await shot('3-chute');

@@ -4,6 +4,10 @@ An exploration game: by the light of a lantern, walk through a maze plunged in d
 
 *Version française : [README.md](README.md)*
 
+## Chalk (new in 1.2.0)
+
+C key (or the button): a chalk arrow on the floor, in the direction you are walking. X key: a cross for a dead end. Marks stay visible in the dark; marking the same spot again erases it.
+
 ## Controls
 
 - **Arrows** or **ZQSD** (WASD on QWERTY): move; **hold** the key to keep walking.

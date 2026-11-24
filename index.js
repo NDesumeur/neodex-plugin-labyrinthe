@@ -6,6 +6,8 @@ const HTML = `<div class="appWrap wide">
     <div class="gSide">
       <div class="sysCard"><b>RECORDS</b><div class="gStats" id="gStats"></div></div>
       <div class="row"><button class="btn main" id="gNew">NOUVELLE PARTIE</button><button class="btn" id="lbPrev">◀</button><button class="btn" id="lbNext">▶</button><button class="btn" id="gFs">PLEIN ÉCRAN</button></div>
+      <div class="row"><button class="btn" id="lbChalk" title="Touche C">CRAIE : FLÈCHE</button><button class="btn" id="lbCross" title="Touche X">CRAIE : CROIX</button></div>
+      <div class="hint">La craie marque le sol où tu es : une flèche dans le sens où tu marches, ou une croix pour un cul-de-sac. Les marques restent visibles dans le noir. Remarquer au même endroit efface.</div>
       <label class="row"><input type="checkbox" id="lbRnd"> Labyrinthes au hasard (nouveau à chaque partie)</label>
       <div class="hint">Ce que la lanterne a éclairé reste sur le plan, en sombre.</div><div class="hint">Chaque niveau est plus grand. Le chrono garde ton record par niveau.</div><div class="hint">Dès le niveau 2, des trappes s'ouvrent un moment (elles tremblent avant) : tomber renvoie au départ. Dès le niveau 3, des grilles se ferment puis se rouvrent.</div>
     </div></div>
@@ -337,6 +339,10 @@ const LB_PAL = {k: '#05010b', s: '#ffd8a8', h: '#6a3a1a', r: '#c03040', R: '#ff5
 const LB_HERO = [spr(['..kkkk..', '.khhhhk.', '.kssssk.', '.ksksk..', 'kkrrrrkk', 'k.rRRr.k', '..kbbk..', '..k..k..'], LB_PAL), spr(['..kkkk..', '.khhhhk.', '.kssssk.', '.ksksk..', '.krrrrk.', 'kkrRRrkk', '..kbbk..', '.k....k.'], LB_PAL)];
 const LB_KEY = spr(['..kkk...', '.kyYyk..', '.kykyk..', '.kyyyk..', '..kyk...', '..kyykk.', '..kyk...', '..kyykk.'], LB_PAL);
 const LB_DOOR = [spr(['.kkkkkk.', 'kdddddDk', 'kdDdDdDk', 'kdDdDdDk', 'kdDdDyDk', 'kdDdDdDk', 'kdDdDdDk', 'kkkkkkkk'], LB_PAL), spr(['.kkkkkk.', 'kk....kk', 'k.yyYy.k', 'k.yYyy.k', 'k.yyyY.k', 'k.yYyy.k', 'k.yyyy.k', 'kkkkkkkk'], LB_PAL)];
+// la craie : une flèche (vers la droite, tournée selon le sens) ou une croix, dessinées en traits blancs
+const LB_ARROW = ['........', '....#...', '.....#..', '.######.', '.....#..', '....#...', '........', '........'], LB_CROSS = ['........', '.#....#.', '..#..#..', '...##...', '...##...', '..#..#..', '.#....#.', '........'];
+const lbChalkPx = m => { const out = []; for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { if (m === 'x') { if (LB_CROSS[y][x] === '#') out.push([x, y]); continue; } if (LB_ARROW[y][x] !== '#') continue; const [dx, dy] = m;
+  out.push(dx === 1 ? [x, y] : dx === -1 ? [7 - x, y] : dy === 1 ? [y, x] : [y, 7 - x]); } return out; };
 const lbs = gstore('labyrinthe', {level: 1, top: 1, done: 0});
 let lb = null;
 function lbGen(level, seed = level * 9973 + 17) {  // labyrinthe parfait creusé en profondeur : un seul chemin entre deux cases
@@ -358,7 +364,7 @@ function lbGen(level, seed = level * 9973 + 17) {  // labyrinthe parfait creusé
 }
 function lbNew(level = lbs.level) {
   lbs.level = level; saveGames(); const L = lbGen(level, lbs.rnd ? Math.floor(Math.random() * 1e9) : undefined);
-  lb = Object.assign(lb || {tick: 0, raf: 0}, {mode: 'ready', ...L, ox: Math.floor((W - L.tw * LB.T) / 2), oy: LB.TOP + Math.floor((H - LB.TOP - L.th * LB.T) / 2), x: 1, y: 1, fx: 1, fy: 1, has: false, dir: null, moveAt: 0, t: 0, steps: 0, wonAt: 0, seen: L.m.map(r => r.map(() => 0)), stone: null, fall: 0, falls: 0, bump: 0, tmap: new Map(L.traps.map(t => [t.x + ',' + t.y, t])), gmap: new Map(L.gates.map(t => [t.x + ',' + t.y, t]))});
+  lb = Object.assign(lb || {tick: 0, raf: 0}, {mode: 'ready', ...L, ox: Math.floor((W - L.tw * LB.T) / 2), oy: LB.TOP + Math.floor((H - LB.TOP - L.th * LB.T) / 2), x: 1, y: 1, fx: 1, fy: 1, has: false, dir: null, moveAt: 0, t: 0, steps: 0, wonAt: 0, seen: L.m.map(r => r.map(() => 0)), chalk: new Map(), last: [1, 0], stone: null, fall: 0, falls: 0, bump: 0, tmap: new Map(L.traps.map(t => [t.x + ',' + t.y, t])), gmap: new Map(L.gates.map(t => [t.x + ',' + t.y, t]))});
   lbLook(); lbInfo();
 }
 function lbLook() { for (let y = 0; y < lb.th; y++) for (let x = 0; x < lb.tw; x++) if (Math.hypot(x - lb.x, y - lb.y) <= LB.LIGHT + .5) lb.seen[y][x] = 1; }
@@ -368,7 +374,7 @@ const lbGate = gt => { const c = (lb.t + gt.off) % 300; return lb.x === gt.x && 
 function lbStep(dx, dy) {
   if (lb.mode !== 'play' || lb.fall || lb.m[lb.y + dy][lb.x + dx]) return false;
   const gt = lb.gmap.get((lb.x + dx) + ',' + (lb.y + dy)); if (gt && lbGate(gt) === 'shut') { if (lb.tick - lb.bump > 20) { lb.bump = lb.tick; beep(90, .12, 'square', 60, .06); } return false; }
-  lb.x += dx; lb.y += dy; lb.steps++; lbLook(); beep(140 + (lb.steps % 2) * 30, .02, 'triangle', 0, .03);
+  lb.x += dx; lb.y += dy; lb.last = [dx, dy]; lb.steps++; lbLook(); beep(140 + (lb.steps % 2) * 30, .02, 'triangle', 0, .03);
   if (!lb.has && lb.x === lb.key[0] && lb.y === lb.key[1]) { lb.has = true; [880, 1320].forEach((f, i) => setTimeout(() => beep(f, .1, 'triangle'), i * 80)); }
   if (lb.has && lb.x === lb.door[0] && lb.y === lb.door[1]) {
     lb.mode = 'won'; lb.wonAt = lb.tick; lbs.done++; if (lbs.level >= lbs.top) lbs.top = lbs.level + 1;
@@ -376,6 +382,10 @@ function lbStep(dx, dy) {
     saveGames(); lbInfo(); [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, .14, 'triangle'), i * 100));
   }
   return true;
+}
+function lbMark(kind) {  // une marque à la craie sur la case où tu es ; la même marque au même endroit l’efface
+  if (!lb || lb.mode === 'won' || lb.fall) return; const k = lb.x + ',' + lb.y, m = kind === 'x' ? 'x' : lb.last.slice(), old = lb.chalk.get(k);
+  if (old && String(old) === String(m)) { lb.chalk.delete(k); beep(300, .05, 'triangle', 200, .03); } else { lb.chalk.set(k, m); beep(1200, .05, 'sawtooth', 1600, .02); }
 }
 function lbUpdate() {
   lb.t++;
@@ -408,6 +418,8 @@ function lbDraw() {
     if (dark) { g.globalAlpha = dark; px(g, '#05010b', lb.ox + x * LB.T, lb.oy + y * LB.T, LB.T, LB.T); g.globalAlpha = 1; }
     if (d >= LB.LIGHT - 1 && d < LB.LIGHT + 1 && (x + y + Math.floor(lb.tick / 8)) % 2 === 0) { g.globalAlpha = .25; px(g, '#05010b', lb.ox + x * LB.T, lb.oy + y * LB.T, LB.T, LB.T); g.globalAlpha = 1; }
   }
+  for (const [k, m] of lb.chalk) { const [x, y] = k.split(',').map(Number), d = Math.hypot(x - lb.fx, y - lb.fy);  // la craie se voit même dans le noir, plus pâle
+    g.globalAlpha = d < LB.LIGHT ? .95 : .5; for (const [a, b] of lbChalkPx(m)) px(g, m === 'x' ? '#ffd0c8' : '#f0f0ff', lb.ox + x * LB.T + a, lb.oy + y * LB.T + b); g.globalAlpha = 1; }
   const vis = (x, y) => lb.seen[y][x];
   if (!lb.has && vis(...lb.key)) g.drawImage(LB_KEY, lb.ox + lb.key[0] * LB.T, lb.oy + lb.key[1] * LB.T - (Math.floor(lb.tick / 15) % 2));
   if (vis(...lb.door)) g.drawImage(LB_DOOR[lb.has ? 1 : 0], lb.ox + lb.door[0] * LB.T, lb.oy + lb.door[1] * LB.T);
@@ -419,7 +431,7 @@ function lbDraw() {
   px(g, '#140c20', 0, 0, W, LB.TOP - 2); px(g, '#2a1e3a', 0, LB.TOP - 2, W, 1);
   pxFont(g, 'NIVEAU ' + lbs.level, 6, 11, '#c8b8e0', 6); pxFont(g, lb.fall ? 'tu tombes !' : (lb.t / 60).toFixed(1) + ' s', W / 2, 11, lb.fall ? '#ff5a6a' : '#ffffff', 6, 'center');
   g.drawImage(LB_KEY, W - 20, 4); if (!lb.has) { g.globalAlpha = .7; px(g, '#140c20', W - 20, 4, 8, 8); g.globalAlpha = 1; } pxFont(g, lb.has ? 'clé' : '?', W - 24, 11, lb.has ? '#ffd84a' : '#6a5a7a', 6, 'right');
-  if (lb.mode === 'ready') gameText(g, W, [['LABYRINTHE', '#ffd84a', 12], ['Trouve la clé, puis la porte', '#ffffff'], ...(lb.traps.length ? [[lb.gates.length ? 'Gare aux trappes et aux grilles' : 'Gare aux trappes qui tremblent', '#ff9a8a']] : []), ['Flèches pour partir', '#ffd84a']], 80);
+  if (lb.mode === 'ready') gameText(g, W, [['LABYRINTHE', '#ffd84a', 12], ['Trouve la clé, puis la porte', '#ffffff'], ...(lb.traps.length ? [[lb.gates.length ? 'Gare aux trappes et aux grilles' : 'Gare aux trappes qui tremblent', '#ff9a8a']] : []), ['C : craie (flèche) · X : croix', '#c8b8e0'], ['Flèches pour partir', '#ffd84a']], 80);
   if (lb.mode === 'won' && lb.tick - lb.wonAt > 20) gameText(g, W, [['SORTI !', '#5fdf6a', 12], [(Math.round(lb.t / 6) / 10) + ' s' + (lb.record ? '  record !' : '') + (lb.falls ? '  · ' + lb.falls + ' chute' + (lb.falls > 1 ? 's' : '') : ''), '#ffffff'], ['Clic : niveau suivant', '#ffd84a']], 80);
 }
 const LB_DIRS = {ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0], z: [0, -1], s: [0, 1], q: [-1, 0], d: [1, 0], w: [0, -1], a: [-1, 0]};
@@ -427,6 +439,7 @@ document.addEventListener('keydown', e => {
   if (!keyOk(e) || !lb) return; const d = LB_DIRS[e.key.length === 1 ? e.key.toLowerCase() : e.key];
   if (d) { e.preventDefault(); if (lb.mode === 'ready') lb.mode = 'play'; if (lb.mode === 'play' && !e.repeat) { lb.dir = d; if (lbStep(...d)) lb.moveAt = lb.tick; } }
   if ((e.key === ' ' || e.key === 'Enter') && lb.mode === 'won') { e.preventDefault(); lbNew(lbs.level + 1); }
+  if (!e.repeat && (e.key === 'c' || e.key === 'C' || e.key === 'x' || e.key === 'X')) { e.preventDefault(); lbMark(e.key.toLowerCase()); }
   if (e.key.toLowerCase() === 'p' && lb.mode === 'play') lb.mode = 'pause'; else if (e.key.toLowerCase() === 'p' && lb.mode === 'pause') lb.mode = 'play';
 });
 document.addEventListener('keyup', e => { if (!lb) return; const d = LB_DIRS[e.key.length === 1 ? e.key.toLowerCase() : e.key]; if (d && lb.dir && d[0] === lb.dir[0] && d[1] === lb.dir[1]) lb.dir = null; });
@@ -436,6 +449,7 @@ cv.onpointermove = e => { if (lb?.ptr) lb.dir = lbAim(e); };
 cv.onpointerup = () => { if (lb) { lb.ptr = false; lb.dir = null; } };
 function lbInfo() { showStats([['Niveau le plus loin', lbs.top], ['Record de ce niveau', games.best['lab' + lbs.level] ? games.best['lab' + lbs.level] + ' s' : '—'], ['Labyrinthes finis', lbs.done]]); }
 $('gNew').onclick = () => { lbNew(lbs.level); $('gNew').blur(); };
+$('lbChalk').onclick = () => { lbMark('a'); $('lbChalk').blur(); }; $('lbCross').onclick = () => { lbMark('x'); $('lbCross').blur(); };
 $('lbRnd').checked = !!lbs.rnd; $('lbRnd').onchange = () => { lbs.rnd = $('lbRnd').checked; saveGames(); lbNew(lbs.level); $('lbRnd').blur(); };  // plans au hasard : la taille suit toujours le niveau
 
 const lbSel = $('lbPrev'), lbNext = $('lbNext');
@@ -450,6 +464,10 @@ function lbCheck() {  // vérification : clé et porte atteignables, pièges sur
   const keep = lb, ks = {...lbs}; lb = null; lbNew(6); lb.mode = 'play';
   const tp = lb.traps[0]; lb.x = tp.x; lb.y = tp.y; lb.t = (180 - tp.off + 240 * 4) % 240 - 1; lbUpdate(); for (let i = 0; i < 40; i++) lbUpdate(); if (lb.x !== 1 || lb.y !== 1 || lb.falls !== 1) bad.push('trappe');
   const gt = lb.gates[0]; if (gt) { const [dx, dy] = [[1, 0], [-1, 0], [0, 1], [0, -1]].find(([a, c]) => !lb.m[gt.y + c][gt.x + a]); lb.x = gt.x + dx; lb.y = gt.y + dy; lb.t = (200 - gt.off + 3000) % 300; if (lbStep(-dx, -dy)) bad.push('grille'); lb.t = (gt.off * -1 + 3000) % 300; if (!lbStep(-dx, -dy)) bad.push('grille ouverte'); } else bad.push('grille 6');
+  lb.fall = 0; lb.mode = 'play'; lb.x = 1; lb.y = 1; lb.last = [0, 1]; lbMark('a'); lbMark('x'); const c1 = lb.chalk.get('1,1'); lbMark('x');
+  if (c1 !== 'x' || lb.chalk.size) bad.push('craie'); lbMark('a'); if (String(lb.chalk.get('1,1')) !== '0,1') bad.push('craie flèche');
+  if (lbChalkPx([1, 0]).length !== 10 || lbChalkPx([0, -1]).some(([a, b]) => a < 0 || b < 0 || a > 7 || b > 7) || String(lbChalkPx([0, 1]).sort()) === String(lbChalkPx([0, -1]).sort())) bad.push('craie dessin');
+  lbNew(6); if (lb.chalk.size) bad.push('craie gardée');
   lb = keep; Object.assign(lbs, ks);
   return bad.join(' | ') || 'ok';
 }

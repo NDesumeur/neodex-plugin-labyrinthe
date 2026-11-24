@@ -4,6 +4,10 @@ Un jeu d'exploration : à la lueur d'une lanterne, parcours un labyrinthe plong�
 
 *English version: [README.en.md](README.en.md)*
 
+## La craie (nouveau en 1.2.0)
+
+Touche C (ou le bouton) : une flèche à la craie sur le sol, dans le sens où tu marches. Touche X : une croix pour un cul-de-sac. Les marques restent visibles dans le noir ; remarquer au même endroit efface.
+
 ## Commandes
 
 - **Flèches** ou **ZQSD** : se déplacer ; **maintiens** la touche pour avancer en continu.
