@@ -301,6 +301,9 @@ export default async function (ctx) {
   const saveGames = () => { clearTimeout(gamesTimer); gamesTimer = setTimeout(() => { gamesTimer = null; folder.write('games', games).catch(() => {}); }, 500); };
   const best = (k, v) => { const b = games.best[k]; if (b == null || v > b) { games.best[k] = v; saveGames(); return true; } return false; };
   const gstore = (k, init) => (games[k] ??= init);
+  // les trophées de NeoDex (3.4.8 et plus) : succès et records déclarés dans plugin.json ; sur un NeoDex plus ancien, rien ne se passe
+  const trophy = id => { ctx.games?.unlock(id).catch(() => {}); };
+  const trophyRecord = (id, v) => { if (v != null && Number.isFinite(+v)) ctx.games?.record(id, +v).catch(() => {}); };
 function gameLoop(st, appKey, update, draw) {
   cancelAnimationFrame(st.raf);
   const STEP = 1000 / 60; let acc = 0, last = performance.now();
@@ -379,7 +382,7 @@ function lbStep(dx, dy) {
   if (lb.has && lb.x === lb.door[0] && lb.y === lb.door[1]) {
     lb.mode = 'won'; lb.wonAt = lb.tick; lbs.done++; if (lbs.level >= lbs.top) lbs.top = lbs.level + 1;
     const k = 'lab' + lbs.level, sec = Math.round(lb.t / 6) / 10; if (!games.best[k] || sec < games.best[k]) { games.best[k] = sec; lb.record = true; } else lb.record = false;
-    saveGames(); lbInfo(); [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, .14, 'triangle'), i * 100));
+    if (lbs.rnd) lbs.hasard = 1; saveGames(); lbInfo(); lbTrophies(); [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, .14, 'triangle'), i * 100));
   }
   return true;
 }
@@ -472,6 +475,13 @@ function lbCheck() {  // vérification : clé et porte atteignables, pièges sur
   return bad.join(' | ') || 'ok';
 }
 { const c = lbCheck(); console.assert(c === 'ok', 'labyrinthe', c); cv.__lb = {check: lbCheck, st: () => lb, again: lv => lbNew(lv), lbs}; }
-ctx.onOpen(() => { if (!lb) lbNew(); gameLoop(lb, 'labyrinthe', lbUpdate, lbDraw); lbInfo(); });
+// les trophées, tirés des statistiques et des records gardés (aussi à l'ouverture : ce qui a été fait avant compte)
+function lbTrophies() {
+  const t = lbs.done > 0 ? lbs.top : 0;
+  trophyRecord('niveau', t || null); trophyRecord('finis', lbs.done || null);
+  if (lbs.done >= 1) trophy('premier'); if (t >= 5) trophy('niveau5'); if (t >= 10) trophy('niveau10'); if (t >= 20) trophy('niveau20'); if (t >= 30) trophy('niveau30');
+  if (lbs.done >= 10) trophy('dix'); if (lbs.done >= 50) trophy('cinquante'); if (lbs.hasard) trophy('hasard'); if (games.best.lab1 < 10) trophy('eclair');
+}
+ctx.onOpen(() => { if (!lb) lbNew(); gameLoop(lb, 'labyrinthe', lbUpdate, lbDraw); lbInfo(); lbTrophies(); });
 
 }

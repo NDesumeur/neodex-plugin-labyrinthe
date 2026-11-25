@@ -1,7 +1,7 @@
 {
   "id": "neodex.labyrinthe",
   "name": "Labyrinthe",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "author": "NDesumeur",
   "description": "Explore un labyrinthe dans le noir à la lueur d'une lanterne : trouve la clé, cachée au plus loin du départ, puis la porte, au plus loin de la clé. Ce que la lanterne a éclairé reste sur le plan. Labyrinthes générés et toujours faisables, plus grands à chaque niveau, plan fixe par niveau ou au hasard, et record de temps par niveau. Pièges dès le niveau 2 : des trappes qui s'ouvrent (tomber renvoie au départ) et des grilles qui se ferment un moment. Jeu à la taille de l'écran et plein écran. Une craie pour marquer son chemin dans le noir.",
   "icon": "icon.png",
@@ -22,5 +22,67 @@
   "sdk": "2.1.0",
   "permissions": [
     "storage"
+  ],
+  "succes": [
+    {
+      "id": "premier",
+      "nom": "La sortie !",
+      "texte": "Finir un premier labyrinthe"
+    },
+    {
+      "id": "niveau5",
+      "nom": "Explorateur",
+      "texte": "Atteindre le niveau 5"
+    },
+    {
+      "id": "niveau10",
+      "nom": "Cartographe",
+      "texte": "Atteindre le niveau 10"
+    },
+    {
+      "id": "niveau20",
+      "nom": "Fil d'Ariane",
+      "texte": "Atteindre le niveau 20"
+    },
+    {
+      "id": "niveau30",
+      "nom": "Minotaure",
+      "texte": "Atteindre le niveau 30",
+      "cache": true
+    },
+    {
+      "id": "dix",
+      "nom": "Bonne lanterne",
+      "texte": "Finir 10 labyrinthes"
+    },
+    {
+      "id": "cinquante",
+      "nom": "Couloirs sans fin",
+      "texte": "Finir 50 labyrinthes"
+    },
+    {
+      "id": "hasard",
+      "nom": "Plan inconnu",
+      "texte": "Finir un labyrinthe avec un plan au hasard"
+    },
+    {
+      "id": "eclair",
+      "nom": "Comme une flèche",
+      "texte": "Finir le niveau 1 en moins de 10 secondes"
+    }
+  ],
+  "records": [
+    {
+      "id": "niveau",
+      "nom": "Niveau le plus loin",
+      "sens": "haut",
+      "format": "nombre"
+    },
+    {
+      "id": "finis",
+      "nom": "Labyrinthes finis",
+      "sens": "haut",
+      "format": "nombre"
+    }
   ]
 }
